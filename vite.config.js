@@ -1,7 +1,7 @@
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
-    base: "/typingTas_alphabet/",
+    base: "/typingTask_alphabet/",
     build: {
       target: "esnext",
       sourcemap: true
