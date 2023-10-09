@@ -221,7 +221,11 @@ export function bonusInstruction({
             </div>
         </div>`];
 
+    pages.push(page_success);
+    pages.push(page_success_binary)
+    pages.push(page_fail_binary);
 
+    /*
     if (condition == 'inverse streak') {
         pages.push(page_fail);
         pages.push(page_fail_iStrk);
@@ -245,6 +249,7 @@ export function bonusInstruction({
             pages.push(page_fail_binary);
         } 
     }
+    */
 
 
     /*
@@ -267,15 +272,25 @@ export function bonusInstruction({
     const comprehension = {
         type: SurveyMultiChoicePlugin,
         questions: function () {
+            return questions.map(x => ({ ...x, required: true }))
+
+            /*
             if (condition == "inverse streak") {
                 return questions_inv.map(x => ({ ...x, required: true }))
             } else {
                 return questions.map(x => ({ ...x, required: true }))
             }
+            */
         },
         randomize_question_order: randomize_order,
         on_finish: function (data) {
             let { Q0, Q1, Q2 } = data.response;
+            data.pass = correct = [
+                    Q0.includes("At least"),
+                    Q1.startsWith(condition === "binary streak" ? '0' : '40'),
+                    Q2.startsWith('60')
+                ].every(Boolean);        
+            /*
             if (condition == 'inverse streak') {
                 data.pass = correct = [
                     Q0.includes("At least"),
@@ -289,6 +304,7 @@ export function bonusInstruction({
                     Q2.startsWith('60')
                 ].every(Boolean)                
             };
+            */
         },
     };
 
@@ -322,21 +338,26 @@ export function bonusInstruction({
  * @param {numeric} fontsize             Fontsize of displayed stimulus
  */
 export class practicePhase {
-    constructor({ numOfTrial = 1, trial_duration = 5, fixation_duration = 3, num_keypress_display = 0, fontsize = "", no_prompt = false, show_stat = false, list = [], data = {}, true_random = undefined, prob_win = undefined } = {}) {
+    constructor({ numOfTrial = 1, effort = undefined, trial_duration = 5, fixation_duration = 3, num_keypress_display = 0, fontsize = "", no_prompt = false, show_stat = false, list = [], data = {}, true_random = undefined, prob_win = undefined } = {}) {
         this.numOfTrial = numOfTrial;
         this.num_keypress_display = num_keypress_display;
         this.data = data;
+        this.effort = effort;
         this.fontsize = fontsize;
         this.no_prompt = no_prompt;
         this.show_stat = show_stat;
         this.true_random = true_random;
         this.prob_win = prob_win;
+        
+        /*
         if (list.length < numOfTrial) {
             // randomly generate ${numOfTrial} two-letter pairs
             const n = list.length;
             list = list.concat(twoLetterPair(numOfTrial-n));
         };
         this.list = list.slice(0, numOfTrial);
+        */
+        //this.list = twoLetterPair(this.effort, this.numOfTrial);
         this.trial_duration = trial_duration * 1000;
         this.fixation_duration = fixation_duration * 1000;
         this.phase = 'practice';
@@ -346,8 +367,8 @@ export class practicePhase {
     getFixation(timeline) {
         timeline.push({
             on_start: (trial) => {
-                let [a, b] = trial.stimulus;
-                trial.stimulus = `<p>type ${a} and then ${b} as many times as possible</p>`;
+                //let [a, b] = trial.stimulus;
+                trial.stimulus = `<p>Type each letter of the alphabet, in order, as fast as possible!</p>`;
             },
             type: HtmlKeyboardResponsePlugin,
             stimulus: jsPsych.timelineVariable("choices"),
@@ -409,11 +430,13 @@ export class practicePhase {
     }
 
     getTimelineVariable() {
+        let alphabetArray = this.list;
         const result = [];
+        
         this.list.forEach((pair) => {
-            let [first, second] = pair.split(',');
-            result.push({ choices: [first, second] })
+            result.push({ choices: pair })
         })
+        console.log(result);
         return result
     }
 
@@ -442,6 +465,7 @@ export class practicePhase {
     }
 
     getTrial() {
+        this.list = twoLetterPair(this.effort, this.numOfTrial);
         const timeline = [];
         // push fixation
         this.getFixation(timeline);
@@ -479,14 +503,15 @@ function getDist(args){
 }
 
 export class bonusPhase extends practicePhase {
-    constructor({ numOfTrial = 1, fontsize = "", no_prompt = false, list = [], data = {}, target_dist = {}, target_min = 1, condition = undefined, feedback = undefined, early_stop = undefined, time = undefined, true_random = undefined, prob_win = undefined, first_trial_num = undefined, multiplierArray = undefined} = {}) {
+    constructor({ numOfTrial = 1, fontsize = "", no_prompt = false, list = [], data = {}, target_dist = {}, target_min = 1, effort = undefined, hitRate = undefined, feedback = undefined, early_stop = undefined, time = undefined, true_random = undefined, prob_win = undefined, first_trial_num = undefined, multiplierArray = undefined} = {}) {
         const {trial_time, fix_time, score_time, reward_time} = time;
         super({ numOfTrial: numOfTrial, trial_duration: trial_time, fixation_duration: fix_time, fontsize: fontsize, no_prompt: no_prompt, list: list, data: data });
         this.target_dist = getDist(target_dist);
         this.target_min = target_min;
         this.practice_score = 0;
         this.phase = "bonus";
-        this.condition = condition;
+        this.hitRate = hitRate;
+        this.effort = effort;
         this.early_stop = early_stop;
         this.score_time = score_time * 1000;
         this.reward_time = reward_time * 1000;
@@ -494,13 +519,16 @@ export class bonusPhase extends practicePhase {
         this.true_random = true_random;
         this.prob_win = prob_win;
         this.multiplier = 1;
-        this.delta = 20;
+        this.delta = 5;
         this.trial_i = first_trial_num;
         this.multiplierArray = multiplierArray;
+        this.reward_agent = new Binary();
+        /*
         this.reward_agent = (condition === "binary") ?
             new Binary() : (condition === "continuous streak") ?
             new ContinuousStreak() : (condition === "binary streak") ?
             new BinaryStreak() : new InverseStreak();
+        */
     }
 
     on_timeline_start() {
@@ -520,7 +548,7 @@ export class bonusPhase extends practicePhase {
                 keypressCallback(info, response, trial, response_history, counter, display_html, end_trial);
 
                 // draw delta on first click
-                if (response.typed == 1) { this.delta = 1 + Math.floor(Math.random() * 20 ) };
+                if (response.typed == 1) { this.delta = 1 + Math.floor(Math.random() * 6 ) };
 
                 // make multiplier = 1 when score < delta and randomly draw new multiplier when score surpasses delta
                 if (response.score <= this.delta) { 
@@ -585,6 +613,7 @@ export class bonusPhase extends practicePhase {
             display_html.find('div#feedback').html(bonus_msg);
             display_html.find('span#target-number').html(target);
             display_html.find('span#current-number').html(current);
+            /*
             if (this.condition !== "binary" && !success) {
                 const div = display_html.find('div#bonus-2');
                 const streak_span = this.condition === 'binary streak'? `${streak}/3` : `${streak}`;
@@ -592,6 +621,7 @@ export class bonusPhase extends practicePhase {
                     ? div.remove()
                     : div.html("Your streak was " + streak_span);
             }
+            */
             trial.stimulus = display_html.html();
             //trial.stimulus = `Congrats!`;
         };
@@ -605,10 +635,12 @@ export class bonusPhase extends practicePhase {
                 ({success, target, score: current} = response);
                 bonus_msg = this.reward_agent.step(success);
                 ({bonus, streak} = this.reward_agent.property);
+                /*
                 if (this.condition === "continuous streak" && this.trial_i === this.numOfTrial) {
                     // the bonus in the last round isn't counted when under this condition
                     bonus = +(20 * this.reward_agent.streak);
                 }
+                */
             }
         });
     }

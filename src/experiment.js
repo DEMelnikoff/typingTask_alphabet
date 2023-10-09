@@ -16,12 +16,11 @@ const args = await readYaml('configs/default.yaml');
 
 // obtain subject id and assign their group condition t  
 const subject_id = jsPsych.randomization.randomID(10);
-const streakType = ['inverse streak', 'binary streak', 'continuous streak'][Math.floor(Math.random() * 3)];
-args.condition = jsPsych.randomization.repeat([streakType, 'binary'], 1);
-const multiplierArray1 = makeMultipliers(args.condition[0]);
-const multiplierArray2 = makeMultipliers(args.condition[1]);
+args.hitRate = ['low', 'high'][Math.floor(Math.random() * 2)];
+args.effort = [['high_effort', 'low_effort'], ['low_effort', 'high_effort']][Math.floor(Math.random() * 2)];
+const multiplierArray1 = makeMultipliers(args.effort[0], args.hitRate);
+const multiplierArray2 = makeMultipliers(args.effort[1], args.hitRate);
 args.multiplierArray = multiplierArray1.concat(multiplierArray2);
-console.log(args.condition, args.multiplierArray);
 
 let PROLIFIC_PID = jsPsych.data.getURLVariable("PROLIFIC_PID");
 if (!PROLIFIC_PID) { PROLIFIC_PID = 0}
@@ -29,11 +28,12 @@ if (!PROLIFIC_PID) { PROLIFIC_PID = 0}
 jsPsych.data.addProperties({
     date: new Date(),
     subject_id: subject_id,
-    game_1: args.condition[0],
-    game_2: args.condition[1],
     PROLIFIC_PID: PROLIFIC_PID,
+    hitRate: args.hitRate,
+    effort_1: args.effort[0],
+    effort_2: args.effort[1],
 });
-console.log(`you are in group ${args.condition}`);
+console.log(`you are in group ${args.hitRate}, ${args.effort}`);
 
 
 // dv constructor functions
@@ -112,22 +112,22 @@ timeline.push( renderPlugin({args: args.fullscreen, on_start: fullscreen_onstart
 //timeline.push( renderPlugin({args: args.practice_instruction}))
 
 // practice phase
-//timeline.push( new practicePhase(args.practice).getTrial() )
+timeline.push( new practicePhase({effort: args.effort[0], ...args.practice}).getTrial() )
 
 // bonus phase (first)
-//timeline.push( bonusInstruction({condition: args.condition[0], ...args.bonus_instruction}))
+timeline.push( bonusInstruction({hitRate: args.hitRate, effort: args.effort[0], ...args.bonus_instruction}))
 
 // bonus phase trials start here (first)
-timeline.push( new bonusPhase({condition: args.condition[0], ...args.bonus, first_trial_num: 0, multiplierArray: args.multiplierArray}).getTrial() )
+timeline.push( new bonusPhase({hitRate: args.hitRate, effort: args.effort[0], ...args.bonus, first_trial_num: 0, multiplierArray: args.multiplierArray}).getTrial() )
 
 timeline.push( new MakeFlowQs('first') );
 timeline.push( new MakeEnjoyQs('first') );
 
 // bonus phase (second)
-timeline.push( bonusInstruction({condition: args.condition[1], ...args.bonus_instruction_2}))
+timeline.push( bonusInstruction({hitRate: args.hitRate, effort: args.effort[1], ...args.bonus_instruction_2}))
 
 // bonus phase trials start here (second)
-timeline.push( new bonusPhase({condition: args.condition[1], ...args.bonus, first_trial_num: 20, multiplierArray: args.multiplierArray}).getTrial() )
+timeline.push( new bonusPhase({hitRate: args.hitRate, effort: args.effort[1], ...args.bonus, first_trial_num: 20, multiplierArray: args.multiplierArray}).getTrial() )
 
 timeline.push( new MakeFlowQs('second') );
 timeline.push( new MakeEnjoyQs('second') );

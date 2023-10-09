@@ -14,6 +14,7 @@ export async function readYaml(url) {
 
 const LETTERS = 'abcdefghijklmnopqrstuvwxyz';
 
+/*
 export function twoLetterPair(num){
   let rtn_list = []; 
   let letters = LETTERS.split('').filter(l => !'oil'.includes(l))
@@ -27,8 +28,26 @@ export function twoLetterPair(num){
   });
   
   rtn_list = rtn_list.sort(() => 0.5 - Math.random())
+  console.log(rtn_list);
   return rtn_list.slice(0, num)
 }
+*/
+
+
+
+export function twoLetterPair(effort, num){
+  let result = [];
+  let alphabet = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"];
+  if (effort == "high_effort") {
+    alphabet.reverse();
+  };
+  for (let i = 0; i < num; i++) {
+    result.push(alphabet);
+  }
+  return result;
+};
+
+
 
 export function checkEmpty(obj){
   if (obj === undefined) {
@@ -303,50 +322,21 @@ export function exportData(data) {
   }
 };
 
-export function makeMultipliers(condition) {
+export function makeMultipliers(effort, hitRate) {
 
-  function geometricRandom(p) {
-    return Math.floor(Math.log(Math.random()) / Math.log(1 - p));
+  let outcomeArray
+
+  if (effort == "high_effort" && hitRate == "low" || effort == "low_effort" && hitRate == "high") {
+    outcomeArray = Array(10).fill(-1);
+  } else if (effort == "high_effort" && hitRate == "high") {
+    outcomeArray = Array(18).fill(-1);
+  } else if (effort == "low_effort" && hitRate == "low") {
+    outcomeArray = Array(2).fill(-1);
   };
 
-  const probabilityOfSuccess = 0.1; // Adjust this probability as needed
-  const numTrials = 2; // Number of random values to generate
-  let geomArray = [];
-  let outcomeArray;
-  let geomArray_sum;
-  let geomArray_max;
-
-  if (condition != 'inverse streak') {
-    while (geomArray_sum != 17 || geomArray_max >= 14) {
-      geomArray = [];
-      for (let i = 0; i < numTrials; i++) {
-          geomArray.push(geometricRandom(probabilityOfSuccess));
-        };
-      geomArray_sum = geomArray.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
-      geomArray_max = Math.max(...geomArray);
-    };
-    outcomeArray = Array(geomArray[0]).fill(1);
-    outcomeArray.push(-1);
-    outcomeArray.push(...Array(geomArray[1]).fill(1));
-    outcomeArray.push(-1);   
-    outcomeArray.push(1);
-  } else {
-    while (geomArray_sum != 18 || geomArray_max >= 14) {
-      geomArray = [];
-      for (let i = 0; i < numTrials; i++) {
-          geomArray.push(geometricRandom(probabilityOfSuccess));
-        };
-      geomArray_sum = geomArray.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
-      geomArray_max = Math.max(...geomArray);
-    };
-    outcomeArray = Array(geomArray[0]).fill(1);
-    outcomeArray.push(-1);
-    outcomeArray.push(...Array(geomArray[1]).fill(1));
-    outcomeArray.push(-1);   
-  }
-
-
-  console.log(outcomeArray);
+  outcomeArray.push(...Array(19 - outcomeArray.length).fill(1));
+  outcomeArray = jsPsych.randomization.repeat(outcomeArray, 1);
+  outcomeArray.push(1);
 
   return outcomeArray;
 
